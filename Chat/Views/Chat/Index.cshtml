@@ -1,0 +1,93 @@
+﻿@{
+    ViewBag.Title = "Index";
+}
+<script src="~/Scripts/jquery-1.10.2.js"></script>
+<script src="~/Scripts/jquery.signalR-2.2.1.js"></script>
+
+<div class="container">
+    <input type="text" class="form-control" id="user_name" placeholder="user name">
+    <input type="text" class="form-control" id="group_name" placeholder="group name">
+
+    @*<div id="chat_area"></div>*@
+    <div id="chat_area" style="width:400px;height:400px;border:1px solid black;"></div>
+    <div class="form-group">
+        <input type="text" class="form-control" id="msg_area" placeholder="メッセージ...">
+    </div>
+    <button type="button" id="send_chat" class="btn btn-success">送信</button>
+</div>
+<script type="text/javascript">
+
+
+    //$("#send_chat").on("click", sendMsg);
+    $("#send_chat").on("click", sendMsgGroup);
+
+    $("#msg_area").on("keyup", function () {
+        if ($(this).val() == "") {
+            $("#send_chat").prop("disabled", true);
+        } else {
+            $("#send_chat").prop("disabled", false);
+        }
+    });
+
+
+
+    // HACK:URLをサーバーから取得するようにする
+    var url = "";
+    url = "http://sv-shrimp/Chat";
+
+    var echo;
+
+    $(function () {
+        // 1. サーバとの接続オブジェクト作成
+        var connection = $.hubConnection(url + "/signalR/hubs", { useDefaultPath: false });
+
+        // 2. Hubのプロキシ・オブジェクトを作成
+        echo = connection.createHubProxy("chat");
+
+        // 3. サーバから呼び出される関数を登録
+        echo.on("getMessage", function (msg, userName) {
+            $("#chat_area").append("<label>" + userName + ":" + msg + "</label><br />")
+        });
+
+        // 4. 接続を開始
+        //connection.start(function () { });
+        connection.start();
+    });
+
+
+
+    function sendMsg() {
+
+        var txt = $("#msg_area").val();
+        var userName = $("#user_name").val();
+        var data = { msg: txt, userName: userName };
+
+
+        $.ajax({
+            type: "POST",
+            url: url + "/Chat/SendMessage",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function () { }
+        });
+    }
+
+    function sendMsgGroup() {
+
+        var txt = $("#msg_area").val();
+        var userName = $("#user_name").val();
+        var groupName = $("#group_name").val();
+        var data = { msg: txt, userName: userName,groupName:groupName };
+
+        echo.invoke("Join",groupName);
+
+        $.ajax({
+            type: "POST",
+            url: url + "/Chat/SendMessageGroup",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function () { }
+        });
+    }
+
+</script>
